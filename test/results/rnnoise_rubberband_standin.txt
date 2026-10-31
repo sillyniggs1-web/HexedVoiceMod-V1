@@ -1,0 +1,240 @@
+[1] Normal preset (enabled, no pitch shift): fixed 384-sample delay, same sound, any chunk size
+  ok:   Normal preset = input delayed by 384 samples (5 ms gate lookahead + 3 ms limiter): 21.7 dB below the signal (only the 75 Hz high-pass shifts the phase a little)
+  ok:   960-sample chunks and random chunk sizes give identical output: 0 differing samples
+[2] pitch path alignment (fake RubberBand = pure delay 2048): mix 1 and mix 0.5, constant and random chunks
+  ok:   mix 1.0 960 chunks: output = input delayed by 2048 (engine) + 384 (lookahead): 21.7 dB below the signal
+  ok:   mix 1.0 random chunks: output = input delayed by 2048 (engine) + 384 (lookahead): 21.7 dB below the signal
+  ok:   mix 0.5 960 chunks: output = input delayed by 2048 (engine) + 384 (lookahead): 21.7 dB below the signal
+  ok:   mix 0.5 random chunks: output = input delayed by 2048 (engine) + 384 (lookahead): 21.7 dB below the signal
+[3] switching presets while talking: no click, no dead gap
+  ok:   largest sample-to-sample step outside the start-up gap: 353 (natural max 353); silent while the pitch engine fills: 1569 samples
+  ok:   level after switching to direct: 0.194
+[4] mic burst: stale audio from the previous burst must not replay
+  ok:   first 200 ms of the next burst (silent input) is silent: rms 0.00000
+[5] filters (frequency response through the full engine)
+  ok:   high-pass 400 Hz: 100 Hz -49.4 dB, 1 kHz 0.0 dB
+  ok:   low-pass 2 kHz: 6 kHz -39.8 dB, 500 Hz 0.0 dB
+  ok:   bass +9 dB: 120 Hz +7.5 dB, 2 kHz +0.0 dB (60 Hz is under the 75 Hz input high-pass)
+  ok:   treble -9 dB: 9 kHz -8.8 dB, 500 Hz -0.0 dB
+[6] drive keeps a sane level; bit-crusher/tremolo/ring-mod run and stay finite
+  ok:   drive 0.2: level change +3.3 dB
+  ok:   drive 0.6: level change +1.8 dB
+  ok:   drive 1.0: level change +0.1 dB
+  ok:   8-bit style (6 bit, /6): +0.3 dB
+  ok:   tremolo depth 1: envelope min/max 0.001/0.172
+  ok:   ring modulator envelope varies: 0.061/0.161
+[7] echo / reverb / chorus / flanger / vibrato
+  ok:   echo: 1st repeat at 250 ms (587624), 2nd at 500 ms is ~half (293817)
+  ok:   reverb tail decays: 0.0149 -> 0.0006
+  ok:   reverb 50% on noise: level change -0.7 dB
+  ok:   mod mode 1: level change -1.2 dB
+  ok:   mod mode 2: level change -1.1 dB
+  ok:   mod mode 3: level change -0.1 dB
+[8] vocoder (whisper / cyber): stable, level matched, voice is gone
+  ok:   voc mode 1: level change +0.1 dB
+  ok:   voc mode 2: level change +0.2 dB
+[9] lite pitch shifter (built-in): measured pitch of a 300 Hz tone
+  ok:   ratio 0.707 -> 208.5 Hz (want 212.1), latency 24.0 ms
+  ok:   ratio 1.260 -> 381.5 Hz (want 378.0), latency 24.0 ms
+  ok:   ratio 2.000 -> 612.5 Hz (want 600.0), latency 24.0 ms
+[10] auto fallback to lite when the CPU is overloaded
+  ok:   idle host: RubberBand engine, auto-lite 0
+[11] robustness: random parameters + random chunks for 20 s of audio, no NaN/overflow/crash
+  ok:   samples hitting the rail: 0
+[12] noise suppression
+  ok:   fan noise only, strength 0.3: reduced by 14.7 dB (floor est -42.1 dBFS)
+  ok:   fan noise only, strength 0.6: reduced by 21.2 dB (floor est -42.1 dBFS)
+  ok:   fan noise only, strength 1.0: reduced by 29.4 dB (floor est -42.1 dBFS)
+  ok:   clean speech: level -0.52 dB, correlation with input delayed 896 samples (384 lookahead + 512 filter) 0.822
+  ok:   speech over fan: noise between words -23.3 dB, speech level -2.0 dB
+  ok:   clicks: avg peak 4760 with click guard 0, 1661 with guard 1 (9.1 dB lower)
+  ok:   960-sample chunks vs random chunks: 0 differing samples
+  ok:   largest step while toggling noise suppression: 353 (natural max 353)
+  ok:   added latency 894 samples (18.6 ms): 512 noise-suppression filter + 384 always-on lookahead
+[13] Auto-Tune: pitch tracker, scale snapping, retune speed (Lite pitch engine, real pitch shifting)
+  ok:   tracker: sung midi 45.00 -> detected 45.00 (110 Hz)
+  ok:   tracker: sung midi 55.00 -> detected 55.01 (196 Hz)
+  ok:   tracker: sung midi 60.30 -> detected 60.31 (266 Hz)
+  ok:   tracker: sung midi 69.00 -> detected 69.02 (440 Hz)
+  ok:   tracker: sung midi 76.20 -> detected 76.22 (667 Hz)
+  ok:   C major hard tune: sung 61.3 -> output 62.00 (want 62)
+  ok:   C major hard tune: sung 64.4 -> output 64.00 (want 64)
+  ok:   C major hard tune: sung 65.8 -> output 65.00 (want 65)
+  ok:   C major hard tune: sung 58.6 -> output 59.00 (want 59)
+  ok:   C major hard tune: sung 70.0 -> output 71.00 (want 69)
+  ok:   chromatic, amount 1: 60.35 -> 60.00
+  ok:   chromatic, amount 0.5: 60.35 -> 60.17 (halfway)
+        retune time   0 ms: 100 ms after the note starts 63.98, after 600 ms 63.99 (target 64.00)
+  ok:   instant retune: on the note after 100 ms (63.98)
+        retune time 300 ms: 100 ms after the note starts 63.68, after 600 ms 63.93 (target 64.00)
+  ok:   300 ms retune glides (63.68 -> 63.93)
+  ok:   noise in: output level -0.7 dB vs input
+  ok:   silence in, Magic Chords on: peak 0
+  ok:   tune + chords: 960-sample vs random chunks: 0 differing samples
+[14] Magic Chords / chord modes (Lite engine)
+        lead 220.0 Hz 58 dB | 3rd 278.5 Hz (want 277.2) 52 dB | 5th 328.0 Hz (want 329.6) 51 dB | bass 110.5 Hz (want 110.0) 50 dB
+  ok:   voices sit on C#4 / E4 / A2 (errors 1.3, -1.6, 0.5 Hz)
+  ok:   voices are strong single lines: 6 / 8 / 8 dB below the lead
+  ok:   notes outside the chord stay down: D4-ish -20, G4-ish -29, B3-ish -24 dB vs 3rd 52 dB
+  ok:   level with chords vs without: +2.2 dB
+  ok:   D major, sing B: D4 46 dB, F#4 43 dB, D#4 -27 dB (minor chord)
+  ok:   mode 1 Magic   : level +2.2 dB, peak 18624
+  ok:   mode 2 Triad   : level +1.8 dB, peak 18377
+  ok:   mode 3 Power   : level +1.1 dB, peak 13494
+  ok:   mode 4 Seventh : level +1.9 dB, peak 18981
+  ok:   mode 5 Sus     : level +1.7 dB, peak 18037
+  ok:   mode 6 Angel   : level +1.6 dB, peak 18852
+  ok:   mode 7 Octaves : level +1.1 dB, peak 16699
+  ok:   mode 8 Duet    : level +1.0 dB, peak 14039
+  ok:   auto key from a D-major melody: root 2 (2 = D)
+  ok:   auto key, minor scale, A-minor melody: root 9 (9 = A)
+  ok:   CPU on this PC: 0.6% of real time for tune + 3 chord voices
+
+[P1] Phase 1 tests (signal conditioning, gate, compressor, de-esser, limiter)
+[P1-2] latency of the always-on stages
+  ok:   reported latency with no pitch engine: 8.00 ms (5 ms gate lookahead + 3 ms limiter)
+[P1-3] input conditioning: DC blocker + 75 Hz high-pass
+  ok:   DC offset of +6000 removed: mean after 1 s = -5.9 LSB
+  ok:   constant DC from the very first sample: no start-up step, peak after the lookahead = 0 LSB
+  ok:   high-pass: 30 Hz -16.5 dB, 75 Hz -3.1 dB (-3 expected), 1 kHz 0.00 dB
+[P1-4] gate: hysteresis, hold, soft expander, lookahead
+  ok:   hysteresis: -45 dB tone passes (-0.0 dB) after the gate opened, but stays down (-10.2 dB) when the gate is closed
+  ok:   hold: 60-100 ms after the drop the gate is -0.2 dB with hold 300 ms, -6.3 dB with hold 0
+  ok:   soft expander: -48 dB tone below the open threshold is turned down -16.1 dB (ratio 3:1), not muted
+  ok:   gate_range_db -12: deep attenuation stops at -13.1 dB
+  ok:   lookahead: first 3 ms of a word onset keep 95% of their level (gate was fully closed before)
+[P1-5] compressor: static curve, attack/release, makeup, auto makeup
+  ok:   static curve: -23 dB in -> -5.26 dB (formula -5.25), -33 dB in (below the knee) -> +0.00 dB
+  ok:   static curve: -9 dB in -> -15.75 dB (formula -15.73)
+  ok:   ratio 1 = no change (+0.00 dB); makeup +6 dB -> +0.74 (-5.26 + 6); auto makeup adds +11.2 dB
+  ok:   attack: first 2.5 ms of the loud burst -1.1 dB, settled -16.7 dB; release (300 ms): back to -0.9 dB 0.8-1 s later
+  ok:   toggling the compressor while talking: largest step 642 (natural max 353 x gain)
+[P1-6] de-esser: attenuates only the sibilance band
+  ok:   sibilant tone (6.5 kHz dominant): 6.5 kHz down 7.0 dB, 300 Hz changed -0.00 dB
+  ok:   weak 6.5 kHz content under a strong vowel is left alone: change -0.00 dB
+  ok:   deess_freq 4.5 kHz follows the setting: 4.5 kHz down 7.0 dB
+[P1-7] lookahead limiter: ceiling is never exceeded, transparent below it
+  ok:   ceiling -0.9 dB (29543): loud input with +24 dB gain peaks at 29542
+  ok:   ceiling -6.0 dB (16424): loud input with +24 dB gain peaks at 16422
+  ok:   ceiling -12.0 dB (8232): loud input with +24 dB gain peaks at 8231
+  ok:   single full-scale spike with ceiling -6 dB: output peak 16422 (<= 16422)
+  ok:   below the ceiling the limiter does not touch the signal (0 samples differ by more than the high-pass phase shift)
+  ok:   release: level 250 ms after a loud passage is back to 100% of the original
+[P1-9] V1 with every new stage on: output independent of the chunk size, finite, parameters appended only
+  ok:   chunk sizes 960 / 64 / 480 / 1023 give identical output: 0 differing samples
+  ok:   new parameter ids are appended after the old ones (reserved slot = 43 ... limit_ceil_db = 57, tune_lookahead_ms = 58, tune_keep_vibrato = 59, P_COUNT 67)
+  ok:   defaults: compressor off, de-esser off, gate off, V1 sound
+
+[P2] Phase 2 tests (tune lookahead, adaptive YIN window, vibrato preservation)
+[P2-1] detection lag of the pitch tracker (note change needing -0.3 st then +0.3 st, chromatic, instant retune): before vs after the adaptive window
+  ok:   mid voice (277 -> 370 Hz): correction ready 60 ms after the onset with the fixed window, 50 ms adaptive
+  ok:   high voice (659 -> 880 Hz): 70 ms fixed, 50 ms adaptive
+  ok:   low voice (83 Hz): 60 ms fixed, 50 ms adaptive (must not get worse)
+[P2-2] tune_lookahead_ms: the corrected pitch is ready when the delayed audio arrives
+  ok:   measured correction lag 50 ms is inside the 0-60 ms lookahead range (set the lookahead to about this value)
+  ok:   reported latency: 24.0 ms -> 54.0 ms with 30 ms lookahead (+30)
+  ok:   mix 1.0: onset of a tone leaves the engine 1437 samples later with 30 ms lookahead (1440 expected)
+  ok:   mix 0.5: onset of a tone leaves the engine 1439 samples later with 30 ms lookahead (1440 expected)
+  ok:   mix 0.0: onset of a tone leaves the engine 1440 samples later with 30 ms lookahead (1440 expected)
+  ok:   RubberBand stand-in, mix 0.5: output with 30 ms lookahead is the output without it delayed by 1440 samples exactly (0 mismatches)
+[P2-3] synthetic glide: hard-tuned output steps through the semitones
+  ok:   glide 60 -> 67 over 1 s: 70 of 75 analysis windows sit within 0.25 st of a semitone, 0 backwards jumps
+[P2-4] vibrato: kept at tune_keep_vibrato 1, removed at 0, note still corrected
+  ok:   pitch swing of the output with 25 ms lookahead (peak to peak, semitones): keep 0 -> 0.44, 0.5 -> 0.67, 1 -> 1.08 (input swing 0.90 st; the tracker's own smoothing leaves some residue at keep 0)
+  ok:   without lookahead the correction arrives too late to flatten the vibrato: swing 0.95 (vs 0.44 with 25 ms)
+  ok:   centre of the output is the scale note A4 (69): keep 0 -> 68.99, keep 1 -> 68.99 (input centre 69.35)
+[P2-5] octave-error protection is kept
+  ok:   fixed window: single-hop octave glitch never reaches the detected note (largest deviation 0.00 st)
+  ok:   adaptive window: single-hop octave glitch never reaches the detected note (largest deviation 0.00 st)
+  ok:   a real, sustained octave change is followed: 57.00 -> 69.02
+  ok:   adaptive window on a low voice (midi 40): detection stays within 0.00 st
+  ok:   adaptive window on a high voice (midi 76): detection stays within 0.03 st
+[P2-6] output independent of the chunk size with lookahead + vibrato + adaptive window + chords
+  ok:   chunk sizes 960 / 1 / 64 / 480 / 1024 / 333 / random: 0 differing samples
+[P2-7] lookahead change is click-free
+  ok:   changing tune_lookahead_ms 0 -> 50 -> 0 while a note is held: largest step 350
+
+[P3] Phase 3 tests (hear-myself monitor servo, simulated BASS push stream)
+[P3-1] the servo never drops a chunk, even with a mic clock far off
+  ok:   mic clock +-0.3 % off for 3 minutes: drops 0 / 0, resets 0, underruns 0 (queue max 76 ms)
+[P3-2] V1 servo: no drops, queue held near the target, rate within +-1 % and smooth
+  ok:   drift +1000 ppm, 20 ms chunks, 3 ms jitter: mean queue 54.1 ms (min 61 / max 71), drops 0, resets 0, underruns 0, max rate offset 0.49 %, max step 0.053 %
+  ok:   drift -1000 ppm, 20 ms chunks, 3 ms jitter: mean queue 46.1 ms (min 53 / max 65), drops 0, resets 0, underruns 0, max rate offset 0.47 %, max step 0.053 %
+  ok:   drift  +300 ppm, 20 ms chunks, 3 ms jitter: mean queue 51.3 ms (min 58 / max 69), drops 0, resets 0, underruns 0, max rate offset 0.48 %, max step 0.053 %
+  ok:   drift    +0 ppm, 20 ms chunks, 3 ms jitter: mean queue 50.1 ms (min 57 / max 68), drops 0, resets 0, underruns 0, max rate offset 0.48 %, max step 0.053 %
+  ok:   mic chunks of 10 ms: mean queue 52.0 ms, drops 0, resets 0, underruns 0
+  ok:   mic chunks of 40 ms: mean queue 52.0 ms, drops 0, resets 0, underruns 0
+  ok:   mic chunks of 100 ms: mean queue 77.5 ms, drops 0, resets 0, underruns 0
+  ok:   start-up: playback starts without an underrun (target level reached before it starts)
+[P3-3] V1 servo: recovery from a queue that is too long, and the hard reset
+  ok:   queue starts at 150 ms: drained to 48.9 ms by the rate change alone (within 15 ms of the target after 8.5 s, no drop, no reset)
+  ok:   a 300 ms output stall piles up audio: exactly one hard reset (1), no dropped chunks (0)
+  ok:   a 120 ms output stall is absorbed without a reset (0 resets)
+  ok:   stats: measured queue 50.1 ms, rate offset +0.003 % (vfx_statf 14 / 15), resets 0 (vfx_stat 21)
+
+[P4] Phase 4 tests (RNNoise engine, formant chords, anti-aliased drive, FDN reverb, echo damping, 20-band vocoder)
+[P4-2] echo: damping and high-pass inside the feedback loop; defaults transparent
+  ok:   echo_damp 0 / echo_hp_hz 0: undamped echo, 2nd repeat is -6.0 dB below the 1st (feedback 0.5 = -6.0 dB)
+  ok:   echo_damp 0.8: 6 kHz in the 2nd repeat is -9.1 dB lower, the 1st repeat is untouched (0.0 dB)
+  ok:   echo_hp_hz 600: 80 Hz in the 2nd repeat is -18.3 dB lower
+[P4-3] drive: 2x oversampling cuts aliasing
+  ok:   5.3 kHz at drive 0.8: energy of the aliased harmonics is 10.7 dB lower than with a plain tanh drive
+  ok:   legitimate (in-band) harmonics stay: +0.1 dB difference
+  ok:   drive 0.1: output level +0.18 dB vs a plain tanh drive
+  ok:   drive 0.4: output level +0.09 dB vs a plain tanh drive
+  ok:   drive 1.0: output level +0.03 dB vs a plain tanh drive
+[P4-4] reverb: 8-line FDN (size, damping, pre-delay, level, stability)
+  ok:   rev_size sets the decay time: energy -30 dB after 0.40 s (0.2), 0.70 s (0.5), 1.04 s (0.9)
+  ok:   rev_damp: the 6 kHz part of the tail falls 20 dB in 0.1 s with damping 0.9, 0.5 s with damping 0.1
+  ok:   rev_predelay_ms 50: first reflections arrive 2400 samples later (2400 expected)
+  ok:   wet level relative to the input (rev_mix 1, default damping): -2.0 / -1.0 / -0.3 dB for size 0.3 / 0.5 / 0.7 (sane and not size-dependent by more than a few dB)
+  ok:   size 1.0 / damp 0 stays stable: tail after 24 s is -300 dB
+  ok:   rev_mix 0 leaves the signal untouched
+[P4-5] vocoder: 20 bands, carrier follows the voice or snaps to the scale
+  ok:   20-band vocoder: finite and level-matched to the voice (+0.3 dB)
+  ok:   carrier 'fixed' (voc_hz 110 Hz = midi 45): output pitch 45.00
+  ok:   carrier 'follow my pitch' (sung midi 55.4): output pitch 55.40
+  ok:   carrier 'snap to scale' (sung midi 55.4, chromatic): output pitch 55.00 (55.00 expected)
+[P4-6] formant-preserving chord voice (pitch-synchronous overlap-add)
+  ok:   pitch accuracy of the PSOLA voice (120/200/300 Hz, -5/+3/+4/+7 semitones): worst 0.3 cents (300 Hz +4 st)
+  ok:   ratio 1: output is the input delayed by about the voice latency (770; the grain grid adds up to half a period of phase): best match at 667 samples, correlation 1.000, level -0.00 dB
+  ok:   formant peak after +4 semitones (input formant at 1000 Hz): PSOLA voice 945 Hz, previous (Lite) voice 1323 Hz
+  ok:   chord voices with chord_formant 1 vs 0: level -1.5 dB apart (no loss, no blow-up)
+[P4-7] AI noise suppression (RNNoise, built into this test)
+  ok:   stat 23: RNNoise built in
+  ok:   RNNoise at full strength (noise-only gap after a spoken phrase; the model needs ~1 s to settle on steady noise): noise -39.6 dB, voice -0.0 dB
+  ok:   reported noise-suppression delay: 20.0 ms (measured: 960 samples)
+  ok:   measured total delay of the AI path on a clean voice: 1344 samples (28.0 ms; [VFX] CPU too high (load 75%) -> switching to the lite pitch shifter
+V1 chain 384 + RNNoise)
+        (measured RNNoise delay = 960 samples = 20.0 ms)
+  ok:   switching Classic -> AI -> Classic while a tone plays: largest step 786 (tone's natural step 353 x level)
+  ok:   AI noise suppression: output independent of the chunk size (0 differing samples)
+[P4-8] everything at once: chunk independence, finite output
+  ok:   chunk sizes 960 / 1 / 64 / 480 / 1023 give identical output with every Phase 4 stage on: 0 differing samples
+  ok:   reverb + vocoder + drive + echo + chords + AI noise suppression: finite, peak 14418, limiter gain 0.0 dB
+
+[P5] Phase 5 tests (lookup tables, stage meters, recovery from Lite)
+[P5-1] sine / cosine table
+  ok:   table vs sinf / cosf over a full turn: max error sin 4.98e-07, cos 5.30e-07
+[P5-4] per-stage CPU meters
+  ok:   stage meters (% of real time): input 0.34, pitch analysis 0.13, pitch engine 0.05, chords 0.18, effects+limiter 0.49; sum 1.20 vs total load 1.20
+  ok:   with the pitch engine, chords and Auto-Tune off their meters read about 0 (0.000 / 0.000 / 0.000)
+[P5-5] automatic return from Lite to RubberBand (simulated load via the test hook)
+  ok:   overload on RubberBand (simulated 90 %) -> automatic switch to Lite (stat 13 = 1, engine 2)
+  ok:   after ~20 s one probe ran, it saw the overload and went back to Lite (probes 1, recoveries 0, still on Lite)
+  ok:   load now 30 %: the next probe succeeded and stayed on RubberBand (recoveries 1, stat 13 = 0, engine 1)
+  ok:   back on Lite, load 60 % (not under 55 %): the probe ran (1) but did not switch back (recoveries 0, stat 13 = 1)
+  ok:   quality 'High' never falls back and never probes (probes 0, engine 1)
+
+release identity + one-time settings import
+  ok:   library API version 9 (9)
+  ok:   product version x100 = 100 (100 = HexedVoiceMod 1.0)
+  ok:   old-library flag 0, imported flag 0 (both 0 on a clean start)
+  ok:   parameter ids 0..10 unchanged
+  ok:   old voicefx.cfg imported (pitch 1.50 formant 1.20 echo 420)
+  ok:   import flag set
+  ok:   new HexedVoiceMod.cfg written by the import
+  ok:   old voicefx.cfg left in place
+  ok:   second load reads the new cfg, not the old one (pitch 1.50)
+
+ALL TESTS PASSED (0 failed)
