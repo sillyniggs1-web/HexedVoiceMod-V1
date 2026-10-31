@@ -1,0 +1,6 @@
+obj/
+libs/
+jni/rubberband-src/
+host_test
+host_test_lite
+jni/rnnoise-src/
